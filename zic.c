@@ -1950,7 +1950,8 @@ inzsub(char **fields, int nfields, bool iscont)
 	z.z_filenum = filenum;
 	z.z_linenum = linenum;
 	z.z_stdoff = gethms(fields[i_stdoff], _("invalid UT offset"));
-	if ((cp = strchr(fields[i_format], '%')) != 0) {
+	cp = strchr(fields[i_format], '%');
+	if (cp) {
 		if ((*++cp != 's' && *cp != 'z') || strchr(cp, '%')
 		    || strchr(fields[i_format], '/')) {
 			error(_("invalid abbreviation format"));
@@ -2238,13 +2239,17 @@ rulesub(struct rule *rp, const char *loyearp, const char *hiyearp,
 		rp->r_wday = lp->l_value;
 		rp->r_dayofmonth = len_months[1][rp->r_month];
 	} else {
-		if ((ep = strchr(dp, '<')) != 0)
-			rp->r_dycode = DC_DOWLEQ;
-		else if ((ep = strchr(dp, '>')) != 0)
-			rp->r_dycode = DC_DOWGEQ;
+		ep = strchr(dp, '<');
+		if (ep)
+		    rp->r_dycode = DC_DOWLEQ;
 		else {
+		    ep = strchr(dp, '>');
+		    if (ep)
+			rp->r_dycode = DC_DOWGEQ;
+		    else {
 			ep = dp;
 			rp->r_dycode = DC_DOM;
+		    }
 		}
 		if (rp->r_dycode != DC_DOM) {
 			*ep++ = 0;
@@ -2761,7 +2766,7 @@ writezone(const char *const name, const char *const string, char version,
 		if (thisleapexpiry) {
 		  /* Append a no-op leap correction indicating when the leap
 		     second table expires.  Although this does not conform to
-		     Internet RFC 8536, most clients seem to accept this and
+		     Internet RFC 9636, most clients seem to accept this and
 		     the plan is to amend the RFC to allow this in version 4
 		     TZif files.  */
 		  puttzcodepass(leapexpires, fp, pass);
@@ -3007,7 +3012,7 @@ stringzone(char *result, struct zone const *zpfirst, ptrdiff_t zonecount)
 
 	result[0] = '\0';
 
-	/* Internet RFC 8536 section 5.1 says to use an empty TZ string if
+	/* Internet RFC 9636 section 6.1 says to use an empty TZ string if
 	   future timestamps are truncated.  */
 	if (hi_time < max_time)
 	  return -1;
