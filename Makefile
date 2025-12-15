@@ -284,7 +284,10 @@ LDLIBS=
 #  -DHAVE_STRDUP=0 if your system lacks the strdup function
 #  -DHAVE_STRNLEN=0 if your system lacks the strnlen function+
 #  -DHAVE_STRTOLL=0 if your system lacks the strtoll function+
-#  -DHAVE_STRUCT_STAT_ST_CTIM=0 if struct stat lacks a member st_ctim+
+#  -DHAVE_STRUCT_STAT_ST_CTIM=0 if struct stat lacks a status-change member
+#	of type struct timespec, so code should use st_ctime instead;
+#	but if the status-change member name is st_ctimespec,
+#	use -Dst_ctim=st_ctimespec instead (default is guessed)+
 #  -DHAVE_STRUCT_TIMESPEC=0 if your system lacks struct timespec+
 #  -DHAVE_SYMLINK=0 if your system lacks the symlink function
 #  -DHAVE_SYS_STAT_H=0 if <sys/stat.h> does not work*
@@ -322,13 +325,13 @@ LDLIBS=
 #		variable, 0 otherwise (default is guessed)
 #	      -DHAVE_SYS_SINGLE_THREADED_H=0 if <sys/single_threaded.h> works,
 #		0 otherwise (default is guessed)
-#	  -DTHREAD_RWLOCK to use read-write locks intead of mutexes.
-#	    This can improve paralellism and thus save real time
+#	  -DTHREAD_RWLOCK to use read-write locks instead of mutexes.
+#	    This can improve parallelism and thus save real time
 #	    if many threads call tzcode functions simultaneously.
 #	    It also costs CPU time and thus energy.
 #	  -DTHREAD_TM_MULTI to have gmtime, localtime, and offtime
 #	    return different struct tm * addresses in different threads.
-#	    This supports unportable programs that call
+#	    This supports nonportable programs that call
 #	    gmtime/localtime/offtime when they should call
 #	    gmtime_r/localtime_r/offtime_r to avoid races.
 #	    Because the corresponding storage is freed on thread exit,
