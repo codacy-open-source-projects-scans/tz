@@ -619,11 +619,11 @@ typedef unsigned long uintmax_t;
 # define ATTRIBUTE_UNSEQUENCED /* empty */
 #endif
 
-/* GCC attributes that are useful in tzcode.
-   __attribute__((const)) is stricter than [[unsequenced]],
-   so the latter is an adequate substitute in non-GCC C23 platforms.
-   __attribute__((pure)) is stricter than [[reproducible]],
-   so the latter is an adequate substitute in non-GCC C23 platforms.  */
+/* GNU C attributes that are useful in tzcode.
+   Although neither __attribute__((const)) nor __attribute__((pure)) are
+   stricter than their C23 counterparts [[unsequenced]] and [[reproducible]],
+   the C23 attributes happen to work in each tzcode use of ATTRIBUTE_CONST
+   and ATTRIBUTE_PURE.  (This might not work outside of tzcode!)  */
 #if __GNUC__ < 3
 # define ATTRIBUTE_CONST ATTRIBUTE_UNSEQUENCED
 # define ATTRIBUTE_FORMAT(spec) /* empty */
@@ -642,6 +642,12 @@ typedef unsigned long uintmax_t;
 #else
 # define ATTRIBUTE_PURE_114833 /* empty */
 #endif
+/* GCC_LINT hack to pacify GCC bug 114833 even though the attribute is
+   not strictly correct, as the function might not return whereas pure
+   functions are supposed to return exactly once.  This hack is not
+   known to generate wrong code for tzcode on any platform.
+   Remove this macro and its uses when the bug is fixed in a GCC release.  */
+#define ATTRIBUTE_PURE_114833_HACK ATTRIBUTE_PURE_114833
 
 #if (__STDC_VERSION__ < 199901 && !defined restrict \
      && (PORT_TO_C89 || defined _MSC_VER))
