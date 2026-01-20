@@ -410,15 +410,9 @@ typedef long long int_fast64_t;
 # endif
 
 # ifndef INT_FAST32_MAX
-#  if INT_MAX >> 31 == 0
 typedef long int_fast32_t;
-#   define INT_FAST32_MAX LONG_MAX
-#   define INT_FAST32_MIN LONG_MIN
-#  else
-typedef int int_fast32_t;
-#   define INT_FAST32_MAX INT_MAX
-#   define INT_FAST32_MIN INT_MIN
-#  endif
+#  define INT_FAST32_MAX LONG_MAX
+#  define INT_FAST32_MIN LONG_MIN
 # endif
 
 # ifndef INT_LEAST32_MAX
@@ -943,7 +937,7 @@ ATTRIBUTE_PURE time_t time2posix_z(timezone_t, time_t);
 
 #define TYPE_BIT(type) (CHAR_BIT * (ptrdiff_t) sizeof(type))
 #define TYPE_SIGNED(type) (((type) -1) < 0)
-#define TWOS_COMPLEMENT(t) ((t) ~ (t) 0 < 0)
+#define TWOS_COMPLEMENT(type) (TYPE_SIGNED (type) && (! ~ (type) -1))
 
 /* Minimum and maximum of two values.  Use lower case to avoid
    naming clashes with standard include files.  */
@@ -1083,7 +1077,10 @@ char *asctime_r(struct tm const *restrict, char *restrict);
 char *ctime_r(time_t const *, char *);
 #endif /* HAVE_INCOMPATIBLE_CTIME_R */
 
-/* Handy macros that are independent of tzfile implementation.  */
+/* Handy constants that are independent of tzfile implementation.  */
+
+/* 2**31 - 1 as a signed integer, and usable in #if.  */
+#define TWO_31_MINUS_1 2147483647
 
 enum {
   SECSPERMIN = 60,

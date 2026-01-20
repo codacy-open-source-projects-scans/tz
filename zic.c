@@ -31,8 +31,8 @@ typedef int_fast64_t	zic_t;
 static zic_t const
   ZIC_MIN = INT_FAST64_MIN,
   ZIC_MAX = INT_FAST64_MAX,
-  ZIC32_MIN = -1 - (zic_t) 0x7fffffff,
-  ZIC32_MAX = 0x7fffffff;
+  ZIC32_MIN = -1 - (zic_t) TWO_31_MINUS_1,
+  ZIC32_MAX = TWO_31_MINUS_1;
 #define SCNdZIC SCNdFAST64
 
 #ifndef ZIC_MAX_ABBR_LEN_WO_WARN
@@ -162,6 +162,11 @@ static uid_t output_owner = -1;
 # define alignof(type) offsetof(struct { char a; type b; }, b)
 #elif __STDC_VERSION__ < 202311
 # include <stdalign.h>
+#endif
+
+/* The name used for the file implementing the obsolete -p option.  */
+#ifndef TZDEFRULES
+# define TZDEFRULES "posixrules"
 #endif
 
 /* The maximum length of a text line, including the trailing newline.  */
@@ -1286,6 +1291,9 @@ main(int argc, char **argv)
 			case 'p':
 				if (psxrules)
 				  duplicate_options("-p");
+				if (strcmp(optarg, "-") != 0)
+				  warning(_("-p is obsolete"
+					    " and likely ineffective"));
 				psxrules = optarg;
 				break;
 			case 't':
@@ -3760,7 +3768,8 @@ addtype(zic_t utoff, char const *abbr, bool isdst, bool ttisstd, bool ttisut)
 {
 	register int	i, j;
 
-	if (! (-1L - 2147483647L <= utoff && utoff <= 2147483647L)) {
+	/* RFC 9636 section 3.2 specifies this range for utoff.  */
+	if (! (-TWO_31_MINUS_1 <= utoff && utoff <= TWO_31_MINUS_1)) {
 		error(_("UT offset out of range"));
 		exit(EXIT_FAILURE);
 	}
