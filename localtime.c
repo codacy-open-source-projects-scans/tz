@@ -479,8 +479,8 @@ struct ttinfo {				/* time type information */
 };
 
 struct lsinfo {				/* leap second information */
-	time_t		ls_trans;	/* transition time */
-	int_fast32_t	ls_corr;	/* correction to apply */
+	time_t		ls_trans;	/* transition time (positive) */
+	int_fast32_2s	ls_corr;	/* correction to apply */
 };
 
 /* This abbreviation means local time is unspecified.  */
@@ -529,8 +529,8 @@ struct rule {
 static struct tm *gmtsub(struct state const *, time_t const *, int_fast32_t,
 			 struct tm *);
 static bool increment_overflow(int *, int);
-static bool increment_overflow_time(time_t *, int_fast32_t);
-static int_fast32_t leapcorr(struct state const *, time_t);
+static bool increment_overflow_time(time_t *, int_fast32_2s);
+static int_fast32_2s leapcorr(struct state const *, time_t);
 static struct tm *timesub(time_t const *, int_fast32_t, struct state const *,
 			  struct tm *);
 static bool tzparse(char const *, struct state *, struct state const *);
@@ -1006,7 +1006,7 @@ tzloadbody(char const *name, struct state *sp, char tzloadflags,
 	    bool skip_datablock = stored == 4 && version;
 	    int_fast32_t datablock_size;
 	    int_fast64_t prevtr = -1;
-	    int_fast32_t prevcorr;
+	    int_fast32_2s prevcorr;
 	    int_fast32_2s
 	      ttisstdcnt = detzcode(up->tzhead.tzh_ttisstdcnt),
 	      ttisutcnt = detzcode(up->tzhead.tzh_ttisutcnt),
@@ -1112,7 +1112,7 @@ tzloadbody(char const *name, struct state *sp, char tzloadflags,
 		leapcnt = 0;
 		for (i = 0; i < sp->leapcnt; ++i) {
 		  int_fast64_t tr = stored == 4 ? detzcode(p) : detzcode64(p);
-		  int_fast32_t corr = detzcode(p + stored);
+		  int_fast32_2s corr = detzcode(p + stored);
 		  p += stored + 4;
 
 		  /* Leap seconds cannot occur before the Epoch,
@@ -2277,7 +2277,7 @@ timesub(const time_t *timep, int_fast32_t offset,
 	register const struct lsinfo *	lp;
 	register time_t			tdays;
 	register const int *		ip;
-	register int_fast32_t		corr;
+	int_fast32_2s corr;
 	register int			i;
 	int_fast32_t idays, rem, dayoff, dayrem;
 	time_t y;
@@ -2467,7 +2467,7 @@ increment_overflow_time_64(time_t *tp, int_fast64_t j)
 }
 
 static bool
-increment_overflow_time(time_t *tp, int_fast32_t j)
+increment_overflow_time(time_t *tp, int_fast32_2s j)
 {
 #ifdef ckd_add
 	return ckd_add(tp, *tp, j);
@@ -2945,7 +2945,7 @@ timegm(struct tm *tmp)
 }
 #endif
 
-static int_fast32_t
+static int_fast32_2s
 leapcorr(struct state const *sp, time_t t)
 {
 	register struct lsinfo const *	lp;
@@ -2967,6 +2967,21 @@ leapcorr(struct state const *sp, time_t t)
 #if !USE_TIMEX_T
 # if STD_INSPIRED
 
+static bool
+decrement_overflow_time(time_t *tp, int_fast32_2s j)
+{
+#ifdef ckd_sub
+  return ckd_sub(tp, *tp, j);
+#else
+  if (! (j < 0
+	 ? *tp <= TIME_T_MAX + j
+	 : (TYPE_SIGNED(time_t) ? TIME_T_MIN + j <= *tp : j <= *tp)))
+    return true;
+  *tp -= j;
+  return false;
+#endif
+}
+
 /* NETBSD_INSPIRED_EXTERN functions are exported to callers if
    NETBSD_INSPIRED is defined, and are private otherwise.  */
 #  if NETBSD_INSPIRED
@@ -2986,7 +3001,13 @@ leapcorr(struct state const *sp, time_t t)
 NETBSD_INSPIRED_EXTERN time_t
 time2posix_z(struct state *sp, time_t t)
 {
-  return t - leapcorr(sp, t);
+  if (decrement_overflow_time(&t, leapcorr(sp, t))) {
+    /* Overflow near maximum time_t value with negative correction.
+       This can happen with unrealistic-but-valid TZif files.  */
+    errno = EOVERFLOW;
+    return -1;
+  }
+  return t;
 }
 
 time_t
@@ -3009,30 +3030,31 @@ time2posix(time_t t)
 NETBSD_INSPIRED_EXTERN time_t
 posix2time_z(struct state *sp, time_t t)
 {
-	time_t	x;
-	time_t	y;
-	/*
-	** For a positive leap second hit, the result
-	** is not unique. For a negative leap second
-	** hit, the corresponding time doesn't exist,
-	** so we return an adjacent second.
-	*/
-	x = t + leapcorr(sp, t);
-	y = x - leapcorr(sp, x);
-	if (y < t) {
-		do {
-			x++;
-			y = x - leapcorr(sp, x);
-		} while (y < t);
-		x -= y != t;
-	} else if (y > t) {
-		do {
-			--x;
-			y = x - leapcorr(sp, x);
-		} while (y > t);
-		x += y != t;
-	}
-	return x;
+  int i;
+  for (i = sp->leapcnt; 0 <= --i; ) {
+    struct lsinfo *lp = &sp->lsis[i];
+    int_fast32_2s corr = lp->ls_corr;
+    time_t t_corr = t;
+
+    if (increment_overflow_time(&t_corr, corr)) {
+      if (0 <= corr) {
+	/* Overflow near maximum time_t value with positive correction.
+	   This can happen with ordinary TZif files with leap seconds.  */
+	errno = EOVERFLOW;
+	return -1;
+      } else {
+	/* A negative correction overflowed, so keep going.
+	   This can happen with unrealistic-but-valid TZif files.  */
+      }
+    } else {
+      time_t trans = lp->ls_trans;
+      if (trans <= t_corr)
+	return (t_corr
+		- (trans == t_corr
+		   && (i == 0 ? 0 : sp->lsis[i - 1].ls_corr) < corr));
+    }
+  }
+  return t;
 }
 
 time_t
