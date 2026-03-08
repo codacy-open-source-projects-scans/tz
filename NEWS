@@ -2,12 +2,22 @@ News for the tz database
 
 Unreleased, experimental changes
 
+  Briefly:
+    British Columbia moves to permanent -07 on 2026-03-09.
+
   Changes to future timestamps
 
-    On 2026-03-09 British Columbia will go from daylight to standard
-    time, without a UT offset change.  That is, its 2026-03-08 spring
-    forward will be its last foreseeable clock change, as it will move
-    to permanent -07 thereafter.  (Thanks to Arthur David Olson.)
+    British Columbia's 2026-03-08 spring forward will be its last
+    foreseeable clock change, as it moves to permanent -07 thereafter.
+    (Thanks to Arthur David Olson.)  Although the change to permanent
+    -07 legally takes place on 2026-03-09, temporarily model the
+    change to occur on 2026-11-01 at 02:00 instead.  This works around
+    a limitation in CLDR v48.1 (2026-01-08).  This temporary hack is
+    planned to be removed after CLDR is fixed.
+
+  Changes to code
+
+    zic no longer mishandles a last transition to a new time type.
 
 
 Release 2026a - 2026-03-01 22:59:49 -0800
