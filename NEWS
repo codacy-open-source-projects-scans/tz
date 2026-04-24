@@ -1,9 +1,10 @@
 News for the tz database
 
-Unreleased, experimental changes
+Release 2026b - 2026-04-22 23:06:43 -0700
 
   Briefly:
     British Columbia moved to permanent -07 on 2026-03-09.
+    Some more overflow bugs have been fixed in zic.
 
   Changes to future timestamps
 
@@ -12,7 +13,7 @@ Unreleased, experimental changes
     (Thanks to Arthur David Olson.)  Although the change to permanent
     -07 legally took place on 2026-03-09, temporarily model the change
     to occur on 2026-11-01 at 02:00 instead.  This works around a
-    limitation in CLDR v48.1 (2026-01-08).  This temporary hack is
+    limitation in CLDR v48.2 (2026-03-17).  This temporary hack is
     planned to be removed after CLDR is fixed.
 
   Changes to code
@@ -6665,7 +6666,7 @@ few (e.g., code2012c-data2012d) have tarballs with mixed version
 numbers.  Recent releases also come in an experimental format
 consisting of a single tarball tzdb-R.tar.lz with extra data.
 
-Release timestamps are taken from the release's commit (for newer,
+A release's timestamp is taken from the release's commit (for newer,
 Git-based releases), from the newest file in the tarball (for older
 releases, where this info is available) or from the email announcing
 the release (if all else fails; these are marked with a time zone
